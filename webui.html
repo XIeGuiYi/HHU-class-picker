@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>河海抢课器</title>
+<style>
+  :root{
+    --bg:#0e1015; --card:#161a22; --card2:#1c2129; --line:#262c37;
+    --fg:#e6e9ef; --dim:#8b93a1; --blue:#3B82FF; --green:#22c55e;
+    --red:#ef4444; --amber:#f59e0b;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--bg);color:var(--fg);
+       font:13px/1.55 "Segoe UI","Microsoft YaHei",system-ui,sans-serif;}
+  button{font:inherit;cursor:pointer;border:1px solid var(--line);
+         background:var(--card2);color:var(--fg);padding:5px 11px;border-radius:6px;}
+  button:hover{border-color:#3a4353;background:#222836;}
+  button.primary{background:var(--blue);border-color:var(--blue);color:#fff;font-weight:600;}
+  button.primary:hover{background:#2f74ea;}
+  button.danger{background:#3a1d1d;border-color:#5a2626;color:#ff9b9b;}
+  button:disabled{opacity:.45;cursor:not-allowed;}
+  input,select{font:inherit;background:#0c0e13;border:1px solid var(--line);color:var(--fg);
+         padding:5px 9px;border-radius:6px;outline:none;}
+  input:focus,select:focus{border-color:var(--blue);}
+  header{display:flex;align-items:center;gap:14px;padding:10px 16px;
+         border-bottom:1px solid var(--line);background:var(--card);flex-wrap:wrap;}
+  .brand{font-weight:700;letter-spacing:.5px;font-size:15px;}
+  .brand span{color:var(--blue);}
+  .meta{color:var(--dim);font-size:12px;}
+  .pill{border:1px solid var(--line);border-radius:20px;padding:3px 10px;font-size:12px;
+        background:var(--card2);}
+  .pill.ok{color:#8ef0b4;border-color:#22452f;}
+  .pill.bad{color:#ff9b9b;border-color:#4a2222;}
+  .count{font-variant-numeric:tabular-nums;font-weight:700;}
+  .count.hot{color:var(--amber);}
+  .spacer{flex:1;}
+  main{display:grid;grid-template-columns:1fr 340px;gap:12px;padding:12px;height:calc(100vh - 58px);}
+  .panel{background:var(--card);border:1px solid var(--line);border-radius:10px;
+         display:flex;flex-direction:column;overflow:hidden;min-height:0;}
+  .panel > h2{margin:0;padding:9px 13px;font-size:13px;font-weight:600;
+              border-bottom:1px solid var(--line);display:flex;align-items:center;gap:9px;
+              background:#131720;}
+  .toolbar{display:flex;gap:8px;align-items:center;padding:9px 13px;border-bottom:1px solid var(--line);
+           flex-wrap:wrap;}
+  .tabs{display:flex;gap:4px;flex-wrap:wrap;align-items:center;}
+  .tabs button{padding:4px 11px;border-radius:20px;font-size:12px;white-space:nowrap;
+               line-height:1.5;}
+  .tabs button.on{background:var(--blue);border-color:var(--blue);color:#fff;}
+  .scroll{overflow:auto;flex:1;min-height:0;}
+  table{width:100%;border-collapse:collapse;table-layout:fixed;}
+  th,td{padding:6px 9px;text-align:left;border-bottom:1px solid #1e242e;
+        vertical-align:top;white-space:normal;word-break:break-word;line-height:1.45;}
+  th{position:sticky;top:0;background:#131720;color:var(--dim);font-weight:600;
+     font-size:12px;z-index:2;}
+  tbody tr:hover{background:#1a1f28;}
+  td.num{text-align:center;font-variant-numeric:tabular-nums;}
+  .zero{color:var(--red);font-weight:700;}
+  .has{color:var(--green);font-weight:700;}
+  .warn{color:var(--amber);}
+  .mini{font-size:12px;color:var(--dim);}
+  .qcard{border:1px solid var(--line);border-radius:8px;padding:9px 11px;margin:8px 11px;
+         background:var(--card2);}
+  .qcard .top{display:flex;align-items:center;gap:8px;}
+  .qcard .name{font-weight:600;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .st{font-size:11px;padding:1px 7px;border-radius:10px;border:1px solid var(--line);}
+  .st.pending{color:var(--dim);}
+  .st.running{color:#9dc4ff;border-color:#274a7d;background:#152238;}
+  .st.success{color:#8ef0b4;border-color:#22452f;background:#15281c;}
+  .st.failed,.st.error{color:#ff9b9b;border-color:#4a2222;background:#2a1616;}
+  .st.done{color:#ffd69a;border-color:#4a3a1a;background:#2a2314;}
+  .qmeta{font-size:12px;color:var(--dim);margin-top:4px;word-break:break-all;}
+  .xftag{color:#9dc4ff;font-weight:700;}
+  #log{padding:4px 0;font-size:12px;font-family:Consolas,"Cascadia Mono",monospace;}
+  .lrow{padding:3px 13px;border-bottom:1px solid #1a1f28;word-break:break-word;}
+  .lrow.ok{color:#8ef0b4;} .lrow.err{color:#ff9b9b;} .lrow.warn{color:var(--amber);}
+  .lrow .t{color:#5b6472;margin-right:7px;}
+  .empty{color:var(--dim);text-align:center;padding:28px;font-size:12px;}
+  .hint{font-size:12px;color:var(--dim);margin-left:auto;}
+  .rowsel{width:14px;height:14px;accent-color:var(--blue);}
+  td.cut{max-width:0;overflow:hidden;}
+  td.cut .mini{margin-top:2px;}
+  .cn{font-weight:500;overflow:hidden;text-overflow:ellipsis;}
+  a.c{color:var(--blue);text-decoration:none;cursor:pointer;}
+  a.c:hover{text-decoration:underline;}
+  ::-webkit-scrollbar{width:9px;height:9px;}
+  ::-webkit-scrollbar-thumb{background:#2b323e;border-radius:5px;}
+  ::-webkit-scrollbar-track{background:transparent;}
+</style>
+</head>
+<body>
+<header>
+  <div class="brand">河海<span>抢课器</span></div>
+  <div class="pill" id="p-login">未登录</div>
+  <div class="meta" id="p-term">—</div>
+  <div class="meta">开抢倒计时 <b class="count" id="p-count">—</b></div>
+  <div class="meta" id="p-window">—</div>
+  <div class="spacer"></div>
+  <input id="f-trjf" type="number" min="0" placeholder="体育积分" title="体育课志愿制：投入积分，留空则不填" style="width:90px">
+  <input id="f-xkzy" type="text" placeholder="选课志愿" title="部分轮次按志愿提交，留空则不填" style="width:110px">
+  <button onclick="refreshCourses()">刷新课程</button>
+  <button class="primary" onclick="bulkEnqueue()">加入队列</button>
+</header>
+
+<main>
+  <section class="panel">
+    <h2>
+      可选课程
+      <span class="mini" id="c-count">0 条</span>
+      <span class="hint">勾选后点右上「加入队列」</span>
+    </h2>
+    <div class="toolbar">
+      <div class="tabs" id="kind-tabs">
+        <button class="on" data-kind="" onclick="setKind(this,'')">全部</button>
+      </div>
+      <input id="f-kw" placeholder="搜索课程 / 教师 / 类别" style="width:220px" oninput="renderCourses()">
+      <label class="mini"><input type="checkbox" id="f-onlyfree" onchange="renderCourses()"> 只看有余额</label>
+      <label class="mini"><input type="checkbox" id="f-noconf" onchange="renderCourses()"> 排除冲突</label>
+      <span class="hint" id="sel-hint">已选 0</span>
+    </div>
+    <div class="toolbar" id="cat-bar" style="display:none">
+      <span class="mini">课程类别</span>
+      <div class="tabs" id="cat-tabs">
+        <button class="on" onclick="setCat(this,'')">全部</button>
+      </div>
+    </div>
+    <div class="scroll"><table>
+      <thead><tr>
+        <th style="width:34px"><input type="checkbox" id="chk-all" onchange="toggleAll(this)" class="rowsel"></th>
+        <th style="width:200px">课程</th><th style="width:74px">教师</th><th style="width:200px">时间 / 地点</th>
+        <th style="width:140px">类别</th><th style="width:48px" class="num">学分</th>
+        <th style="width:52px" class="num">剩余</th>
+        <th style="width:150px">冲突</th><th style="width:36px"></th>
+      </tr></thead>
+      <tbody id="cbody"></tbody>
+    </table><div class="empty" id="c-empty">加载中…</div></div>
+  </section>
+
+  <section class="panel">
+    <h2>抢课队列 <span class="mini" id="q-count">0</span>
+      <span class="spacer"></span>
+      <button class="danger" onclick="stopAll()">停止</button>
+      <button onclick="resumeAll()">恢复</button>
+      <button onclick="clearDone()">清理</button>
+    </h2>
+    <div class="scroll" style="max-height:42%"><div id="queue"><div class="empty">队列为空</div></div></div>
+    <h2>运行日志</h2>
+    <div class="scroll" id="log"></div>
+  </section>
+</main>
+
+<script>
+let COURSES = [];
+let STATE = {};
+let SEL = new Set();
+let KIND = '';
+let CAT = '';
+let LOG_LOADED = false;
+
+const $ = s => document.querySelector(s);
+const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g,
+  c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const nl = s => esc(s).replace(/\n/g, '<br>');
+const catOf = c => c.cat || c.fzmc || '';
+// 学分：教务有的班返回 "2.0"，有的返回 "2"，展示保留原样，合计按数值算
+const xfRaw = o => String((o || {}).xf == null ? '' : o.xf).trim();
+const xfNum = o => { const n = parseFloat(xfRaw(o)); return isNaN(n) ? 0 : n; };
+const sumXf = list => list.reduce((a, c) => a + xfNum(c), 0);
+const fmtXf = n => String(Math.round(n * 100) / 100);
+// 已抢到 / 待命 / 抢课中的才算进学分预期，失败和错误的不算
+const DEAD = ['failed', 'error'];
+
+function setKind(btn, k){
+  KIND = k;
+  document.querySelectorAll('#kind-tabs button').forEach(b => b.classList.remove('on'));
+  btn.classList.add('on');
+  renderCourses();
+}
+
+function setCat(btn, k){
+  CAT = k;
+  document.querySelectorAll('#cat-tabs button').forEach(b => b.classList.remove('on'));
+  btn.classList.add('on');
+  renderCourses();
+}
+
+function renderTabs(){
+  const ks = STATE.kinds || [];
+  const box = $('#kind-tabs');
+  const sig = ks.map(k => k.key).join(',');
+  if (box.dataset.sig === sig) return;
+  box.dataset.sig = sig;
+  if (KIND && !ks.some(k => k.key === KIND)) KIND = '';
+  box.innerHTML = `<button class="${KIND===''?'on':''}" onclick="setKind(this,'')">全部</button>`
+    + ks.map(k => `<button class="${KIND===k.key?'on':''}" onclick="setKind(this,'${esc(k.key)}')">`
+       + `${esc(k.name)}</button>`).join('');
+}
+
+function renderCatTabs(){
+  const box = $('#cat-tabs');
+  // 类别跟着当前选课类别走：选了「体育选课」就只列体育项目，不混着能力类
+  const pool = KIND ? COURSES.filter(c => c.kind === KIND) : COURSES;
+  const counts = new Map();
+  pool.forEach(c => { const k = catOf(c); if (k) counts.set(k, (counts.get(k) || 0) + 1); });
+  const ks = [...counts.keys()].sort((a, b) => counts.get(b) - counts.get(a) || a.localeCompare(b, 'zh'));
+  const sig = KIND + '\u0001' + ks.join('\u0001');
+  if (box.dataset.sig === sig) { return; }
+  box.dataset.sig = sig;
+  if (CAT && !counts.has(CAT)) CAT = '';
+  $('#cat-bar').style.display = ks.length ? 'flex' : 'none';
+  box.innerHTML = `<button class="${CAT===''?'on':''}" onclick="setCat(this,'')">全部</button>`
+    + ks.map(k => `<button class="${CAT===k?'on':''}" onclick="setCat(this,'${esc(k)}')">`
+       + `${esc(k)} <span class="mini">${counts.get(k)}</span></button>`).join('');
+}
+
+async function loadCourses(){
+  const r = await fetch('/api/courses');
+  const j = await r.json();
+  COURSES = j.rows || [];
+  renderCourses();
+}
+
+function filtered(){
+  const kw = ($('#f-kw').value || '').trim().toLowerCase();
+  const free = $('#f-onlyfree').checked;
+  const noconf = $('#f-noconf').checked;
+  return COURSES.filter(c => {
+    if (KIND && c.kind !== KIND) return false;
+    if (CAT && catOf(c) !== CAT) return false;
+    if (free && !(parseInt(c.syrs) > 0)) return false;
+    if (noconf && c.ctsm) return false;
+    if (kw){
+      const hay = (c.kcmc + ' ' + c.kch + ' ' + c.skls + ' ' + c.cat + ' ' + c.fzmc
+                   + ' ' + c.ktmc + ' ' + c.sksj + ' ' + c.skdd).toLowerCase();
+      if (!hay.includes(kw)) return false;
+    }
+    return true;
+  });
+}
+
+function renderCourses(){
+  renderCatTabs();
+  const rows = filtered();
+  const body = $('#cbody');
+  const sliced = rows.slice(0, 400);
+  body.innerHTML = sliced.map(c => {
+    const sy = parseInt(c.syrs);
+    const syCls = isNaN(sy) ? '' : (sy > 0 ? 'has' : 'zero');
+    const tags = [c.cat, c.fzmc].filter(Boolean);
+    const tagHtml = tags.length
+      ? '<div class="cn">' + esc(tags[0]) + '</div>'
+        + (tags[1] ? '<div class="mini">' + esc(tags[1]) + '</div>' : '')
+      : '<span class="mini">—</span>';
+    const kt = (c.ktmc && c.ktmc.length <= 12) ? ' · ' + esc(c.ktmc) : '';
+    const on = SEL.has(c.jx0404id);
+    const time = c.sksj ? nl(c.sksj) : '<span class="mini">不限 / 网课</span>';
+    const place = c.skdd ? '<div class="mini">' + nl(c.skdd) + '</div>' : '';
+    return `<tr>
+      <td><input type="checkbox" class="rowsel" ${on?'checked':''} onchange="toggleSel('${c.jx0404id}',this.checked)"></td>
+      <td class="cut"><div class="cn">${esc(c.kcmc)}</div><div class="mini">${esc(c.kch)}${kt}</div></td>
+      <td class="cut">${esc(c.skls)}</td>
+      <td class="cut">${time}${place}</td>
+      <td class="cut">${tagHtml}</td>
+      <td class="num">${xfRaw(c) ? esc(xfRaw(c)) : '<span class="mini">—</span>'}</td>
+      <td class="num ${syCls}">${esc(c.syrs)}</td>
+      <td class="mini warn cut">${esc(c.ctsm)}</td>
+      <td><a class="c" onclick="enqueueOne('${c.jx0404id}')">抢</a></td>
+    </tr>`;
+  }).join('');
+  $('#c-empty').style.display = sliced.length ? 'none' : 'block';
+  $('#c-empty').textContent = COURSES.length ? '没有匹配的课程' : '暂无课程数据，点「刷新课程」';
+  $('#c-count').textContent = rows.length + ' 条' + (rows.length > 400 ? '（显示前 400）' : '');
+  const selList = COURSES.filter(c => SEL.has(c.jx0404id));
+  const selXf = sumXf(selList);
+  $('#sel-hint').textContent = '已选 ' + SEL.size + ' 门'
+    + (selXf > 0 ? ' · ' + fmtXf(selXf) + ' 学分' : '');
+  const all = $('#chk-all');
+  all.checked = sliced.length > 0 && sliced.every(c => SEL.has(c.jx0404id));
+}
+
+function toggleSel(id, on){ on ? SEL.add(id) : SEL.delete(id); renderCourses(); }
+function toggleAll(box){
+  filtered().slice(0,400).forEach(c => box.checked ? SEL.add(c.jx0404id) : SEL.delete(c.jx0404id));
+  renderCourses();
+}
+
+function payloadOf(c){
+  // oper 必须带上：公选课走 ggxxkxkOper，体育课走 bxxkOper，
+  // 丢了它服务端会一律落到默认口子，公选课全打空。
+  return {jx0404id:c.jx0404id, jx02id:c.jx02id, cfbs:c.cfbs, kcmc:c.kcmc, kch:c.kch,
+          xf:c.xf, skls:c.skls, sksj:c.sksj, kind:c.kind, oper:c.oper,
+          trjf: ($('#f-trjf').value || ''),
+          xkzy: ($('#f-xkzy').value || '')};
+}
+
+async function postJSON(url, obj){
+  const r = await fetch(url, {method:'POST', headers:{'Content-Type':'application/json'},
+                             body: JSON.stringify(obj || {})});
+  return r.json().catch(() => ({}));
+}
+
+async function enqueueOne(id){
+  const c = COURSES.find(x => x.jx0404id === id);
+  if (!c) return;
+  await postJSON('/api/enqueue', {items:[payloadOf(c)]});
+  SEL.delete(id);
+  renderCourses();
+  loadState();
+}
+
+async function bulkEnqueue(){
+  const items = filtered().filter(c => SEL.has(c.jx0404id)).map(payloadOf);
+  if (!items.length){ alert('先勾选课程'); return; }
+  await postJSON('/api/enqueue', {items});
+  SEL.clear();
+  renderCourses();
+  loadState();
+}
+
+async function refreshCourses(){
+  $('#c-empty').style.display='block'; $('#c-empty').textContent='刷新中…';
+  await postJSON('/api/refresh');
+  await loadCourses();
+  loadState();
+}
+async function stopAll(){ await postJSON('/api/stop'); loadState(); }
+async function resumeAll(){ await postJSON('/api/resume'); loadState(); }
+async function clearDone(){ await postJSON('/api/clear'); loadState(); }
+async function removeTask(id){ await postJSON('/api/remove',{jx0404id:id}); loadState(); }
+
+function renderQueue(){
+  const q = STATE.queue || [];
+  const liveXf = sumXf(q.filter(t => !DEAD.includes(t.status)));
+  $('#q-count').textContent = q.length + ' 门'
+    + (liveXf > 0 ? ' · ' + fmtXf(liveXf) + ' 学分' : '');
+  const box = $('#queue');
+  if (!q.length){ box.innerHTML = '<div class="empty">队列为空</div>'; return; }
+  box.innerHTML = q.map(t => `
+    <div class="qcard">
+      <div class="top">
+        <span class="name">${esc(t.kcmc)}</span>
+        <span class="st ${esc(t.status)}">${({pending:'待命',running:'抢课中',success:'已抢到',
+             failed:'失败',done:'已完成',stopped:'已停止',error:'错误'})[t.status] || t.status}</span>
+        <a class="c" onclick="removeTask('${t.jx0404id}')">移除</a>
+      </div>
+      <div class="qmeta">${xfRaw(t) ? '<b class="xftag">' + esc(xfRaw(t)) + ' 学分</b> · ' : ''}${esc(t.skls)} · ${nl(t.sksj)} · 尝试 ${t.tries} 次</div>
+      <div class="qmeta">${esc(t.last) || '—'}</div>
+    </div>`).join('');
+}
+
+function pushLog(l){
+  const box = $('#log');
+  const div = document.createElement('div');
+  div.className = 'lrow ' + (l.level || 'info');
+  div.innerHTML = '<span class="t">' + esc(l.t) + '</span>' + esc(l.msg);
+  box.appendChild(div);
+  while (box.childElementCount > 300) box.removeChild(box.firstChild);
+  box.scrollTop = box.scrollHeight;
+}
+
+async function loadState(){
+  const r = await fetch('/api/state');
+  STATE = await r.json();
+  const pl = $('#p-login');
+  pl.textContent = STATE.login_ok ? (STATE.acc ? '已登录 ' + STATE.acc : '已登录') : '未登录';
+  pl.className = 'pill ' + (STATE.login_ok ? 'ok' : 'bad');
+  $('#p-term').textContent = (STATE.term || '—') + ' · ' + STATE.courses + ' 门';
+  $('#p-window').textContent = STATE.window_start
+      ? (STATE.window_start.slice(5,16) + ' → ' + STATE.window_end.slice(5,16)) : '';
+  if (!LOG_LOADED && Array.isArray(STATE.logs)){
+    STATE.logs.forEach(pushLog);
+    LOG_LOADED = true;
+  }
+  renderTabs();
+  renderQueue();
+  tick();
+}
+
+function tick(){
+  const el = $('#p-count');
+  if (!STATE.window_start){ el.textContent = '—'; return; }
+  const now = Date.now();
+  const t0 = new Date(STATE.window_start.replace(/-/g,'/')).getTime();
+  const t1 = new Date(STATE.window_end.replace(/-/g,'/')).getTime();
+  if (now < t0){
+    let s = Math.floor((t0 - now)/1000);
+    const h = Math.floor(s/3600), m = Math.floor(s%3600/60), ss = s%60;
+    el.textContent = `${h}h ${String(m).padStart(2,'0')}m ${String(ss).padStart(2,'0')}s`;
+    el.className = 'count hot';
+  } else if (now <= t1){
+    el.textContent = '选课进行中';
+    el.className = 'count has';
+  } else {
+    el.textContent = '已结束';
+    el.className = 'count';
+  }
+}
+setInterval(tick, 1000);
+
+const es = new EventSource('/api/events');
+es.addEventListener('log', e => pushLog(JSON.parse(e.data)));
+es.addEventListener('state', e => {
+  STATE = JSON.parse(e.data);
+  renderTabs(); renderQueue(); tick();
+});
+
+loadCourses();
+loadState();
+setInterval(loadState, 5000);
+</script>
+</body>
+</html>
